@@ -34,7 +34,7 @@ EXERCISE:
 
 HEALTH:
   metricType ("sleep"|"mood"|"weight"|"blood_pressure"|"medication"|"symptom"|"water"),
-  value (number), unit (string), notes (string, optional),
+  value (number), unit (string — for water always convert to oz: 1 glass = 8 oz, 1 bottle = 16 oz; always set unit to "oz"), notes (string, optional),
   taken (boolean — for medication only),
   name (string — medication name if applicable)
 
