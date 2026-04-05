@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'error';
 
@@ -18,12 +18,14 @@ export function useVoice(): UseVoiceReturn {
   const [state, setState]         = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
   const [micError, setMicError]   = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(false);
   const mediaRecorderRef          = useRef<MediaRecorder | null>(null);
   const chunksRef                 = useRef<Blob[]>([]);
 
-  // MediaRecorder is supported on all modern browsers including iOS Safari 14.5+
-  const isSupported = typeof window !== 'undefined' &&
-    !!(navigator.mediaDevices?.getUserMedia);
+  // Check support client-side only to avoid SSR hydration mismatch
+  useEffect(() => {
+    setIsSupported(!!(navigator.mediaDevices?.getUserMedia));
+  }, []);
 
   const stopListening = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {

@@ -34,6 +34,24 @@ export function entrySummary(category: Category, data: ParsedData): string {
   }
 }
 
+// Returns a score-based mood emoji (1–10 scale)
+export function moodEmoji(score: number): string {
+  if (score <= 2)  return '😢';
+  if (score <= 4)  return '😕';
+  if (score <= 6)  return '😐';
+  if (score <= 8)  return '🙂';
+  return '😄';
+}
+
+// Returns Tailwind color classes for a mood score
+export function moodColor(score: number): { bg: string; text: string; bar: string } {
+  if (score <= 2)  return { bg: 'bg-red-50',    text: 'text-red-500',    bar: 'bg-red-400' };
+  if (score <= 4)  return { bg: 'bg-orange-50', text: 'text-orange-500', bar: 'bg-orange-400' };
+  if (score <= 6)  return { bg: 'bg-yellow-50', text: 'text-yellow-600', bar: 'bg-yellow-400' };
+  if (score <= 8)  return { bg: 'bg-green-50',  text: 'text-green-600',  bar: 'bg-green-400' };
+  return              { bg: 'bg-emerald-50', text: 'text-emerald-600', bar: 'bg-emerald-400' };
+}
+
 // Returns an emoji for each category / health metric type
 export function categoryEmoji(category: Category, data?: ParsedData): string {
   switch (category) {
@@ -44,13 +62,13 @@ export function categoryEmoji(category: Category, data?: ParsedData): string {
       const d = data as HealthData | undefined;
       if (!d) return '❤️';
       switch (d.metricType) {
-        case 'sleep':       return '😴';
-        case 'mood':        return '😊';
-        case 'weight':      return '⚖️';
-        case 'water':       return '💧';
-        case 'medication':  return '💊';
+        case 'sleep':          return '😴';
+        case 'mood':           return moodEmoji((d.value ?? 5));
+        case 'weight':         return '⚖️';
+        case 'water':          return '💧';
+        case 'medication':     return '💊';
         case 'blood_pressure': return '🩺';
-        default:            return '❤️';
+        default:               return '❤️';
       }
     }
     default: return '📝';

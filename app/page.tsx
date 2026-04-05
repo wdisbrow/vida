@@ -8,7 +8,7 @@ import VoiceButton from '@/components/VoiceButton';
 import ConfirmCard from '@/components/ConfirmCard';
 import DailyLog from '@/components/DailyLog';
 import { ParseResult, FoodData, HealthData } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, moodEmoji, moodColor } from '@/lib/utils';
 
 export default function TodayPage() {
   const router = useRouter();
@@ -131,7 +131,17 @@ export default function TodayPage() {
 
   const exerciseCount = entries.filter((e) => e.category === 'exercise').length;
 
+  const lastMoodEntry = entries.find(
+    (e) =>
+      e.category === 'health' &&
+      (e.parsed_data as HealthData).metricType === 'mood'
+  );
+  const moodScore = lastMoodEntry
+    ? ((lastMoodEntry.parsed_data as HealthData).value ?? null)
+    : null;
+
   const showStats = entries.length > 0;
+  const moodColors = moodScore !== null ? moodColor(moodScore) : null;
 
   return (
     <div className="px-4 pt-6 space-y-6">
@@ -153,6 +163,22 @@ export default function TodayPage() {
             value={sleepHrs !== null ? `${sleepHrs}h` : '—'}
             label="sleep"
           />
+        </div>
+      )}
+
+      {/* Mood pill — shown separately when logged so it gets more visual space */}
+      {moodScore !== null && moodColors && (
+        <div className={`rounded-xl px-4 py-2.5 flex items-center gap-3 ${moodColors.bg}`}>
+          <span className="text-2xl">{moodEmoji(moodScore)}</span>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1">
+              <p className={`text-sm font-semibold ${moodColors.text}`}>Mood</p>
+              <p className={`text-sm font-bold ${moodColors.text}`}>{moodScore}/10</p>
+            </div>
+            <div className="h-1.5 bg-white rounded-full overflow-hidden">
+              <div className={`h-full rounded-full ${moodColors.bar}`} style={{ width: `${moodScore * 10}%` }} />
+            </div>
+          </div>
         </div>
       )}
 
