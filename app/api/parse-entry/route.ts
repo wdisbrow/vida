@@ -10,7 +10,7 @@ Extract the activity and return ONLY valid JSON — no explanation, no markdown,
 Return this exact structure:
 {
   "category": "food" | "exercise" | "health" | "task",
-  "occurred_at": "<ISO 8601 timestamp — infer from context like 'this morning', default to now>",
+  "occurred_at": "<ISO 8601 timestamp — preserve the timezone offset from the current date/time provided. For tasks, always use the current time (when the entry was logged), NOT the due time. For food/exercise/health, use the time the activity occurred. Default to now if unspecified>",
   "parsed_data": { ...fields specific to the category... },
   "confidence": <0.0 to 1.0>,
   "needs_clarification": <true if confidence < 0.75>,
@@ -39,7 +39,7 @@ HEALTH:
 
 TASK:
   taskName (string), status ("completed"|"pending"), taskCategory ("errand"|"appointment"|"chore"|"personal"),
-  dueTime (ISO 8601 timestamp — extract if user mentions a time like "at 3pm", "by noon", "tomorrow morning"; omit if no time mentioned)
+  dueTime (ISO 8601 timestamp — extract if user mentions a time like "at 3pm", "by noon", "tomorrow morning"; preserve the timezone offset from the current date/time provided; omit if no time mentioned)
 
 Rules:
 - Always estimate calories for food if you can (use common serving sizes)

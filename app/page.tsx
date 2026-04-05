@@ -19,7 +19,7 @@ export default function TodayPage() {
   const [savedFlash, setSavedFlash]     = useState<boolean>(false);
 
   const { state, setState, transcript, startListening, stopListening, reset, isSupported, micError } = useVoice();
-  const { entries, loading } = useEntries(userId);
+  const { entries, loading, removeEntry } = useEntries(userId);
 
   // Auth check + fetch user profile (for real weight)
   useEffect(() => {
@@ -47,13 +47,24 @@ export default function TodayPage() {
 
     (async () => {
       try {
+        // Build a timezone-aware ISO string e.g. "2026-04-05T09:00:00-06:00"
+        // so Claude knows the local offset and generates correct timestamps
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const tzOffset = now.getTimezoneOffset(); // positive = behind UTC
+        const sign = tzOffset > 0 ? '-' : '+';
+        const absOff = Math.abs(tzOffset);
+        const localNow = new Date(now.getTime() - tzOffset * 60000);
+        const localISO = localNow.toISOString().slice(0, 19)
+          + `${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
+
         const res = await fetch('/api/parse-entry', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             transcript,
-            datetime: new Date().toISOString(),
-            weightLbs,           // ← real user weight now
+            datetime: localISO,   // e.g. "2026-04-05T09:00:00-06:00"
+            weightLbs,
           }),
         });
 
@@ -104,6 +115,7 @@ export default function TodayPage() {
   };
 
   const handleDelete = async (id: string) => {
+    removeEntry(id);                                      // optimistic — remove from UI immediately
     await fetch(`/api/entries?id=${id}`, { method: 'DELETE' });
   };
 

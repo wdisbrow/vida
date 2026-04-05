@@ -1,5 +1,5 @@
 'use client';
-import { Entry, HealthData } from '@/lib/types';
+import { Entry, HealthData, TaskData } from '@/lib/types';
 import { categoryEmoji, moodEmoji, moodColor, entrySummary, formatTime } from '@/lib/utils';
 
 interface EntryItemProps {
@@ -63,7 +63,11 @@ export default function EntryItem({ entry, onDelete }: EntryItemProps) {
 
   const emoji   = categoryEmoji(entry.category, entry.parsed_data);
   const summary = entrySummary(entry.category, entry.parsed_data);
-  const time    = formatTime(entry.occurred_at);
+  // For tasks with a due time, show that instead of the logging time
+  const taskDueTime = entry.category === 'task'
+    ? (entry.parsed_data as TaskData).dueTime
+    : undefined;
+  const time = taskDueTime ? formatTime(taskDueTime) : formatTime(entry.occurred_at);
 
   return (
     <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 group">

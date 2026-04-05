@@ -45,5 +45,8 @@ export function useEntries(userId: string | undefined) {
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
-  return { entries, loading };
+  const removeEntry = (id: string) =>
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+
+  return { entries, loading, removeEntry };
 }
