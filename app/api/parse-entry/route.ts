@@ -15,6 +15,7 @@ Return this exact structure:
   "confidence": <0.0 to 1.0>,
   "needs_clarification": <true if confidence < 0.75>,
   "clarification_prompt": "<friendly question to ask if needs_clarification is true, else null>",
+  "clarification_options": <array of 2–4 short answer chips if the question has obvious choices, e.g. ["Breakfast","Lunch","Dinner","Snack"] or ["Light","Moderate","Vigorous"]; use null if the question is open-ended like asking for a number or name>,
   "display_summary": "<one short line shown to user, e.g. 'Oatmeal with berries — 320 cal'>"
 }
 

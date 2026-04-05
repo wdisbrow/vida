@@ -17,6 +17,7 @@ export default function TodayPage() {
   const [parseResult, setParseResult]   = useState<ParseResult | null>(null);
   const [saving, setSaving]             = useState<boolean>(false);
   const [savedFlash, setSavedFlash]     = useState<boolean>(false);
+  const [reAnswering, setReAnswering]   = useState<boolean>(false);
 
   const { state, setState, transcript, startListening, stopListening, reset, isSupported, micError } = useVoice();
   const { entries, loading, removeEntry } = useEntries(userId);
@@ -114,6 +115,39 @@ export default function TodayPage() {
     reset();
   };
 
+  // Re-parse with the original transcript + the user's clarification answer
+  const handleReanswer = async (answer: string) => {
+    if (!parseResult) return;
+    setReAnswering(true);
+    try {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const tzOffset = now.getTimezoneOffset();
+      const sign = tzOffset > 0 ? '-' : '+';
+      const absOff = Math.abs(tzOffset);
+      const localNow = new Date(now.getTime() - tzOffset * 60000);
+      const localISO = localNow.toISOString().slice(0, 19)
+        + `${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
+
+      const res = await fetch('/api/parse-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: `${transcript} ${answer}`,
+          datetime: localISO,
+          weightLbs,
+        }),
+      });
+      if (!res.ok) throw new Error('Re-parse failed');
+      const result: ParseResult = await res.json();
+      setParseResult(result);
+    } catch (err) {
+      console.error('Reanswer error:', err);
+    } finally {
+      setReAnswering(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     removeEntry(id);                                      // optimistic — remove from UI immediately
     await fetch(`/api/entries?id=${id}`, { method: 'DELETE' });
@@ -208,7 +242,9 @@ export default function TodayPage() {
             result={parseResult}
             onSave={handleSave}
             onDiscard={handleDiscard}
+            onReanswer={handleReanswer}
             saving={saving}
+            reAnswering={reAnswering}
           />
         ) : (
           <>

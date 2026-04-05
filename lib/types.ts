@@ -58,5 +58,6 @@ export interface ParseResult {
   confidence: number;
   needs_clarification: boolean;
   clarification_prompt?: string;
+  clarification_options?: string[]; // 2–3 quick-answer chips, e.g. ["Breakfast","Lunch","Dinner"]
   display_summary: string; // e.g. "Oatmeal with berries — 320 cal"
 }
