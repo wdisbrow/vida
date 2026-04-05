@@ -38,7 +38,8 @@ HEALTH:
   name (string — medication name if applicable)
 
 TASK:
-  taskName (string), status ("completed"|"pending"), taskCategory ("errand"|"appointment"|"chore"|"personal")
+  taskName (string), status ("completed"|"pending"), taskCategory ("errand"|"appointment"|"chore"|"personal"),
+  dueTime (ISO 8601 timestamp — extract if user mentions a time like "at 3pm", "by noon", "tomorrow morning"; omit if no time mentioned)
 
 Rules:
 - Always estimate calories for food if you can (use common serving sizes)

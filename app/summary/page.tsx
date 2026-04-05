@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { FoodData, HealthData } from '@/lib/types';
+import { useGoals } from '@/hooks/useGoals';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface RawEntry {
@@ -51,6 +52,7 @@ function BarChart({
   maxValue,
   color,
   unit,
+  goalValue,
   formatVal,
 }: {
   title: string;
@@ -60,17 +62,38 @@ function BarChart({
   color: string;
   todayColor: string;
   unit: string;
+  goalValue?: number;
   formatVal?: (v: number) => string;
 }) {
-  const cap = Math.max(maxValue, 1);
+  // Scale cap to always accommodate the goal line
+  const cap = Math.max(maxValue, goalValue ?? 0, 1);
   const fmt = formatVal ?? ((v: number) => String(Math.round(v)));
+  const goalPct = goalValue && goalValue > 0 ? (goalValue / cap) * 100 : null;
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      <p className="text-gray-700 font-semibold mb-3">{title}</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-gray-700 font-semibold">{title}</p>
+        {goalValue && (
+          <span className="text-xs text-gray-400">
+            goal: {fmt(goalValue)} {unit}
+          </span>
+        )}
+      </div>
 
-      {/* Bars */}
-      <div className="flex items-end gap-1.5 h-28">
+      {/* Bars + goal line */}
+      <div className="relative flex items-end gap-1.5 h-28">
+
+        {/* Dashed goal line */}
+        {goalPct !== null && (
+          <div
+            className="absolute left-0 right-0 flex items-center pointer-events-none"
+            style={{ bottom: `${goalPct}%` }}
+          >
+            <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+          </div>
+        )}
+
         {values.map((v, i) => {
           const heightPct = v > 0 ? Math.max((v / cap) * 100, 5) : 0;
           const isToday   = i === values.length - 1;
@@ -158,6 +181,7 @@ export default function SummaryPage() {
   const [userId,  setUserId]  = useState<string | undefined>(undefined);
   const [entries, setEntries] = useState<RawEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { goals } = useGoals(userId);
 
   // Auth check
   useEffect(() => {
@@ -212,9 +236,9 @@ export default function SummaryPage() {
     });
   }, [entries]);
 
-  const maxCalories = Math.max(...days.map((d) => d.calories), 1);
-  const maxWater    = Math.max(...days.map((d) => d.waterOz),  1);
-  const maxSleep    = Math.max(...days.map((d) => d.sleepHrs), 10);
+  const maxCalories = Math.max(...days.map((d) => d.calories), goals.daily_calories, 1);
+  const maxWater    = Math.max(...days.map((d) => d.waterOz),  goals.daily_water_oz,  1);
+  const maxSleep    = Math.max(...days.map((d) => d.sleepHrs), goals.sleep_hours,     10);
 
   if (loading) {
     return (
@@ -254,6 +278,7 @@ export default function SummaryPage() {
             color="bg-blue-300"
             todayColor="bg-blue-500"
             unit="cal"
+            goalValue={goals.daily_calories}
           />
 
           <BarChart
@@ -264,6 +289,7 @@ export default function SummaryPage() {
             color="bg-cyan-300"
             todayColor="bg-cyan-500"
             unit="oz"
+            goalValue={goals.daily_water_oz}
           />
 
           <BarChart
@@ -274,6 +300,7 @@ export default function SummaryPage() {
             color="bg-purple-300"
             todayColor="bg-purple-500"
             unit="hrs"
+            goalValue={goals.sleep_hours}
             formatVal={(v) => v.toFixed(1)}
           />
 

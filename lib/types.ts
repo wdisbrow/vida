@@ -33,6 +33,7 @@ export interface TaskData {
   taskName: string;
   status: 'completed' | 'pending';
   taskCategory?: string;
+  dueTime?: string; // ISO 8601 timestamp — set when user mentions a specific time
 }
 
 export type ParsedData = FoodData | ExerciseData | HealthData | TaskData;
