@@ -149,6 +149,7 @@ export default function GoalsPage() {
   const [draft, setDraft]         = useState<Goals | null>(null);
   const [weekExercise, setWeekExercise] = useState(0);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saveError, setSaveError]  = useState(false);
 
   const { entries, loading: entriesLoading } = useEntries(userId);
   const { goals, loading: goalsLoading, saving, saveGoals } = useGoals(userId);
@@ -214,12 +215,16 @@ export default function GoalsPage() {
 
   const handleSave = async () => {
     if (!draft) return;
+    setSaveError(false);
     const ok = await saveGoals(draft);
     if (ok) {
       setEditing(false);
       setDraft(null);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2000);
+    } else {
+      setSaveError(true);
+      setTimeout(() => setSaveError(false), 4000);
     }
   };
 
@@ -272,6 +277,13 @@ export default function GoalsPage() {
       {savedFlash && (
         <div className="text-center py-2 bg-green-100 text-green-700 rounded-xl font-medium">
           ✓ Goals saved!
+        </div>
+      )}
+
+      {/* Save error */}
+      {saveError && (
+        <div className="text-center py-2 bg-red-50 text-red-600 rounded-xl font-medium">
+          ✗ Couldn&apos;t save goals. Please try again.
         </div>
       )}
 
