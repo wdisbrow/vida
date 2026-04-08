@@ -18,6 +18,9 @@ export default function TodayPage() {
   const [saving, setSaving]             = useState<boolean>(false);
   const [savedFlash, setSavedFlash]     = useState<boolean>(false);
   const [reAnswering, setReAnswering]   = useState<boolean>(false);
+  const [textInput, setTextInput]       = useState<string>('');
+  const [textParsing, setTextParsing]   = useState<boolean>(false);
+  const [activeTranscript, setActiveTranscript] = useState<string>('');
 
   const { state, setState, transcript, startListening, stopListening, reset, isSupported, micError } = useVoice();
   const { entries, loading, removeEntry } = useEntries(userId);
@@ -48,29 +51,19 @@ export default function TodayPage() {
 
     (async () => {
       try {
-        // Build a timezone-aware ISO string e.g. "2026-04-05T09:00:00-06:00"
-        // so Claude knows the local offset and generates correct timestamps
-        const now = new Date();
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const tzOffset = now.getTimezoneOffset(); // positive = behind UTC
-        const sign = tzOffset > 0 ? '-' : '+';
-        const absOff = Math.abs(tzOffset);
-        const localNow = new Date(now.getTime() - tzOffset * 60000);
-        const localISO = localNow.toISOString().slice(0, 19)
-          + `${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
-
         const res = await fetch('/api/parse-entry', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             transcript,
-            datetime: localISO,   // e.g. "2026-04-05T09:00:00-06:00"
+            datetime: buildLocalISO(),
             weightLbs,
           }),
         });
 
         if (!res.ok) throw new Error('Parse failed');
         const result: ParseResult = await res.json();
+        setActiveTranscript(transcript);
         setParseResult(result);
         setState('idle');
       } catch (err) {
@@ -92,7 +85,7 @@ export default function TodayPage() {
           user_id:     userId,
           occurred_at: parseResult.occurred_at,
           category:    parseResult.category,
-          raw_text:    transcript,
+          raw_text:    activeTranscript,
           parsed_data: parseResult.parsed_data,
           confidence:  parseResult.confidence,
           source:      'voice',
@@ -112,7 +105,41 @@ export default function TodayPage() {
 
   const handleDiscard = () => {
     setParseResult(null);
+    setActiveTranscript('');
     reset();
+  };
+
+  const buildLocalISO = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const tzOffset = now.getTimezoneOffset();
+    const sign = tzOffset > 0 ? '-' : '+';
+    const absOff = Math.abs(tzOffset);
+    const localNow = new Date(now.getTime() - tzOffset * 60000);
+    return localNow.toISOString().slice(0, 19)
+      + `${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
+  };
+
+  const handleTextSubmit = async () => {
+    const text = textInput.trim();
+    if (!text) return;
+    setTextParsing(true);
+    setTextInput('');
+    try {
+      const res = await fetch('/api/parse-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text, datetime: buildLocalISO(), weightLbs }),
+      });
+      if (!res.ok) throw new Error('Parse failed');
+      const result: ParseResult = await res.json();
+      setActiveTranscript(text);
+      setParseResult(result);
+    } catch (err) {
+      console.error('Text parse error:', err);
+    } finally {
+      setTextParsing(false);
+    }
   };
 
   // Re-parse with the original transcript + the user's clarification answer
@@ -120,21 +147,12 @@ export default function TodayPage() {
     if (!parseResult) return;
     setReAnswering(true);
     try {
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const tzOffset = now.getTimezoneOffset();
-      const sign = tzOffset > 0 ? '-' : '+';
-      const absOff = Math.abs(tzOffset);
-      const localNow = new Date(now.getTime() - tzOffset * 60000);
-      const localISO = localNow.toISOString().slice(0, 19)
-        + `${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
-
       const res = await fetch('/api/parse-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript: `${transcript} ${answer}`,
-          datetime: localISO,
+          transcript: `${activeTranscript} ${answer}`,
+          datetime: buildLocalISO(),
           weightLbs,
         }),
       });
@@ -265,6 +283,31 @@ export default function TodayPage() {
                 () => {}
               }
             />
+
+            {/* Keyboard entry bar */}
+            <div className="w-full max-w-sm mt-6">
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-2 shadow-sm">
+                <input
+                  type="text"
+                  className="flex-1 text-sm text-gray-800 placeholder-gray-400 outline-none bg-transparent py-1"
+                  placeholder="Or type your entry here..."
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()}
+                  disabled={textParsing}
+                />
+                <button
+                  onClick={handleTextSubmit}
+                  disabled={!textInput.trim() || textParsing}
+                  className="flex-shrink-0 w-8 h-8 rounded-xl bg-indigo-500 disabled:bg-indigo-200 flex items-center justify-center transition-colors"
+                >
+                  {textParsing
+                    ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" /></svg>
+                  }
+                </button>
+              </div>
+            </div>
           </>
         )}
       </div>
