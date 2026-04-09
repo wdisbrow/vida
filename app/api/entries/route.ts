@@ -10,13 +10,17 @@ const supabase = createClient(
 // GET /api/entries?userId=xxx&date=2026-03-31
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-  const date   = searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const userId    = searchParams.get('userId');
+  const date      = searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const tzOffset  = parseInt(searchParams.get('tzOffset') || '0'); // minutes behind UTC (JS convention)
 
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
 
-  const dayStart = new Date(`${date}T00:00:00`).toISOString();
-  const dayEnd   = new Date(`${date}T23:59:59`).toISOString();
+  // Shift midnight boundaries by the client's UTC offset so we query local-day ranges
+  const dayStart = new Date(`${date}T00:00:00Z`);
+  dayStart.setMinutes(dayStart.getMinutes() + tzOffset);
+  const dayEnd = new Date(`${date}T23:59:59Z`);
+  dayEnd.setMinutes(dayEnd.getMinutes() + tzOffset);
 
   const { data, error } = await supabase
     .from('entries')
