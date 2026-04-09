@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
     .from('entries')
     .select('*')
     .eq('user_id', userId)
-    .gte('occurred_at', dayStart)
-    .lte('occurred_at', dayEnd)
+    .gte('occurred_at', dayStart.toISOString())
+    .lte('occurred_at', dayEnd.toISOString())
     .order('occurred_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
